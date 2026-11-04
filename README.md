@@ -1,44 +1,12 @@
-# Controllo impianto — demo per il cliente
+# Wittur — Stabilimento A | Demo V3
 
-Anteprima **statica e interattiva** dell'interfaccia Web HMI per la gestione di 32 utenze e fasce settimanali.
+Dashboard operativa: utenze in funzione all'orario del browser, prossime accensioni entro 24 ore, utenze disabilitate, registro attività e guida.
 
-## Pubblicazione su GitHub Pages
+**Nessuna connessione PLC.** Gli stati sono simulati dalle fasce orarie. Il registro salva localmente navigazioni, aperture utenze, conferme e ripristini; non è un audit centralizzato.
 
-1. Crea un repository GitHub (es. `demo-controllo-impianto`).
-2. Carica **nella radice del repository** i tre file `index.html`, `style.css` e `demo.js` (puoi includere anche questo README).
-3. Apri **Settings → Pages**.
-4. In **Build and deployment** scegli **Deploy from a branch**, branch **main**, cartella **/(root)** e salva.
-5. Attendi il completamento della pubblicazione. Il link avrà normalmente la forma `https://TUO-UTENTE.github.io/demo-controllo-impianto/`.
+## Aggiornamento GitHub Pages
+Sostituire nella root del repository **tutti e tre** i file `index.html`, `style.css`, `demo.js` e fare Commit changes. Il parametro `?v=3` forza il caricamento dei file aggiornati. Ricaricare con Ctrl+F5.
 
-Non sono necessari Node.js, PHP, database, certificati o credenziali.
+Non caricare lo ZIP direttamente. La demo non contiene credenziali o accessi Siemens.
 
-## Cosa può fare il cliente
-
-- Navigare dashboard operativa, programmazione, elenco utenze, registro attività e guida.
-- Selezionare una delle 32 utenze.
-- Cambiare descrizione, tipo, abilitazione e fasce orarie (7 giorni, fino a 10 fasce).
-- Copiare una giornata sui giorni lavorativi, annullare la bozza, confermare.
-- Vedere l'effetto dimostrativo sugli stati calcolati in base all'orario del browser.
-
-## Limitazioni e sicurezza
-
-**È una demo, non un controllo impianto.** Non contiene `plc.js`, proxy, password, token, IP PLC, certificati, dati di produzione o chiamate alle Web API Siemens.
-
-Le modifiche sono salvate **solo nel localStorage del browser**; ogni browser/dispositivo vede i propri dati. Nessuna modifica viene inviata a un PLC. Gli stati sono simulati, non misure reali. La validazione degli orari è semplificata e non rappresenta tutte le regole SCL del sistema reale. Le modalità "Impulsiva" e "Durata" sono illustrate graficamente ma non ne simulano la logica temporale specifica.
-
-Per ripristinare i dati iniziali: **Come funziona → Ripristina dati dimostrativi**.
-
-## Distribuzione
-
-Questa versione è pensata per essere pubblicata come repository **pubblico**. Prima di pubblicare, personalizza nomi di utenze e riferimenti aziendali secondo quanto autorizzato dal cliente. Nessun file del progetto PLC originale è richiesto.
-
-## Novità versione 2
-
-- Marchio Wittur caricato da Wikimedia Commons (richiede connessione a Internet e verifica dell'autorizzazione all'uso del marchio); fallback testuale se non disponibile.
-- Intestazione **Stabilimento A**.
-- Dashboard ordinata per utilità operativa: utenze attive adesso, prossime attivazioni della giornata, disabilitate, ultime operazioni.
-- Aggiornamento automatico dashboard ogni 30 secondi. Gli stati derivano dall'orologio del browser, non da segnali fisici.
-- Registro delle conferme e ripristini, conservato in `localStorage` (max 100 eventi). Non registra la semplice navigazione né l'identità di utenti inesistenti.
-- Guida rapida per l'operatore.
-
-**Pubblicazione aggiornamento:** sostituire i file `index.html`, `style.css`, `demo.js`, `README.md` nella root del repository GitHub, poi eseguire commit. La pagina GitHub Pages si aggiorna automaticamente.
+Nota: il marchio Wittur è rappresentato da una scritta testuale, non da un logo grafico ufficiale, finché non viene fornito un asset autorizzato.
