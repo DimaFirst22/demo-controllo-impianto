@@ -1,4 +1,4 @@
-# Wittur — Stabilimento A | Demo V3
+# Demo
 
 Dashboard operativa: utenze in funzione all'orario del browser, prossime accensioni entro 24 ore, utenze disabilitate, registro attività e guida.
 
