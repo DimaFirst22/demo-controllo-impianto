@@ -14,7 +14,7 @@ Non sono necessari Node.js, PHP, database, certificati o credenziali.
 
 ## Cosa può fare il cliente
 
-- Navigare dashboard, programmazione, elenco utenze e spiegazione.
+- Navigare dashboard operativa, programmazione, elenco utenze, registro attività e guida.
 - Selezionare una delle 32 utenze.
 - Cambiare descrizione, tipo, abilitazione e fasce orarie (7 giorni, fino a 10 fasce).
 - Copiare una giornata sui giorni lavorativi, annullare la bozza, confermare.
@@ -31,3 +31,14 @@ Per ripristinare i dati iniziali: **Come funziona → Ripristina dati dimostrati
 ## Distribuzione
 
 Questa versione è pensata per essere pubblicata come repository **pubblico**. Prima di pubblicare, personalizza nomi di utenze e riferimenti aziendali secondo quanto autorizzato dal cliente. Nessun file del progetto PLC originale è richiesto.
+
+## Novità versione 2
+
+- Marchio Wittur caricato da Wikimedia Commons (richiede connessione a Internet e verifica dell'autorizzazione all'uso del marchio); fallback testuale se non disponibile.
+- Intestazione **Stabilimento A**.
+- Dashboard ordinata per utilità operativa: utenze attive adesso, prossime attivazioni della giornata, disabilitate, ultime operazioni.
+- Aggiornamento automatico dashboard ogni 30 secondi. Gli stati derivano dall'orologio del browser, non da segnali fisici.
+- Registro delle conferme e ripristini, conservato in `localStorage` (max 100 eventi). Non registra la semplice navigazione né l'identità di utenti inesistenti.
+- Guida rapida per l'operatore.
+
+**Pubblicazione aggiornamento:** sostituire i file `index.html`, `style.css`, `demo.js`, `README.md` nella root del repository GitHub, poi eseguire commit. La pagina GitHub Pages si aggiorna automaticamente.

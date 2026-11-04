@@ -1,7 +1,7 @@
 /* Demo statica: nessuna API, autenticazione o comunicazione PLC. */
 'use strict';
 (() => {
- const STORAGE='demo-web-hmi-cliente-v1', DAYS=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+ const STORAGE='demo-web-hmi-cliente-v1', LOGKEY='demo-web-hmi-attivita-v2', DAYS=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
  const names=['Presenza aria','Accensione pompa acqua 1','Temperatura acqua St. A1','Illuminazione reparto A','Ventilazione stabilimento','Pompa ricircolo','Illuminazione esterna','Estrattore zona B','Compressore ausiliario','Riscaldamento uffici','Ventilatore quadro','Pompa acqua 2','Luci magazzino','Impianto trattamento','Luci ingresso','Aspirazione zona 1'];
  const $=sel=>document.querySelector(sel);
  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -14,6 +14,26 @@
  }
  let data;
  try{const stored=JSON.parse(localStorage.getItem(STORAGE));data=Array.isArray(stored)&&stored.length===32?stored:seed()}catch{data=seed()}
+ let events=[];
+ try{const x=JSON.parse(localStorage.getItem(LOGKEY));events=Array.isArray(x)?x.slice(0,100):[]}catch{}
+ const eventTime=t=>new Date(t).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+ function logEvent(action,detail){
+  events.unshift({time:new Date().toISOString(),action,detail});events=events.slice(0,100);
+  try{localStorage.setItem(LOGKEY,JSON.stringify(events))}catch{}
+ }
+ function upcoming(limit=8){
+  const now=new Date(),nowMinute=now.getHours()*60+now.getMinutes(),d=now.getDay(),out=[];
+  data.forEach(u=>{
+   if(!u.enabled)return;
+   u.config[d].forEach((slot,i)=>{
+    if(!slot.start||!slot.end)return;
+    const start=minutes(slot.start),end=minutes(slot.end);
+    if(start>nowMinute)out.push({u,day:d,slot:i+1,start,minutesLeft:start-nowMinute,end});
+   });
+  });
+  return out.sort((a,b)=>a.start-b.start||a.u.id-b.u.id).slice(0,limit);
+ }
+ const timeLabel=m=>`${n2(Math.floor(m/60))}:${n2(m%60)}`;
  let page='dashboard',selected=1,day=1,draft=null,expanded=false,search='',toastTimer=null;
  const save=()=>{try{localStorage.setItem(STORAGE,JSON.stringify(data));return true}catch{return false}};
  const n2=n=>String(n).padStart(2,'0');
@@ -36,22 +56,34 @@
  function top(title,subtitle,right=''){return `<div class="section-head"><div><p class="eyebrow">CONTROLLO IMPIANTO · ANTEPRIMA</p><h1>${title}</h1><p class="lead" style="margin:0">${subtitle}</p></div>${right}</div>`}
  function selector(){return `<label class="select">Utenza selezionata<select id="selected">${data.map(u=>`<option value="${u.id}" ${u.id===selected?'selected':''}>${n2(u.id)} · ${esc(u.name)}</option>`).join('')}</select></label>`}
  function dashboard(){
-  const on=data.filter(active).length,enabled=data.filter(u=>u.enabled).length,scheduled=data.filter(u=>slots(u)>0).length;
-  const latest=data.slice(0,6);
-  return top('Panoramica impianto','Una vista immediata dello stato delle utenze e delle programmazioni.')+
-  `<div class="cards">
-   <div class="card"><div class="metric-label">Utenze configurate</div><div class="metric">32</div><div class="metric-foot">Disponibili nella demo</div></div>
-   <div class="card"><div class="metric-label">Utenze abilitate</div><div class="metric">${enabled}</div><div class="metric-foot">Abilitazione simulata</div></div>
-   <div class="card"><div class="metric-label">Attive adesso</div><div class="metric">${on}</div><div class="metric-foot">Calcolato dall'orario del browser</div></div>
-   <div class="card"><div class="metric-label">Con programmazione</div><div class="metric">${scheduled}</div><div class="metric-foot">Almeno una fascia oraria</div></div>
-  </div>
-  <div class="two-col"><section class="panel"><div class="section-head"><div><h2>Stato utenze</h2><span class="muted">Esempio di monitoraggio operativo</span></div><button class="btn small" id="allConsumers">Vedi tutte</button></div>
-  <div class="table-wrap"><table><thead><tr><th>Utenza</th><th>Stato</th><th>Fasce</th><th></th></tr></thead><tbody>${latest.map(u=>`<tr><td><strong>${esc(u.name)}</strong><div class="muted">ID ${n2(u.id)}</div></td><td><span class="status ${active(u)?'on':'off'}">${active(u)?'Attiva':'Non attiva'}</span></td><td>${slots(u)}</td><td><button class="btn small edit-one" data-id="${u.id}">Apri</button></td></tr>`).join('')}</tbody></table></div></section>
-  <section class="panel"><h2>Riepilogo configurazione</h2><p class="muted">Le programmazioni sono distribuite su 7 giorni, con fino a 10 fasce per giornata.</p>
-  <div class="bar-row"><div class="bar-head"><span>Utenze abilitate</span><b>${enabled}/32</b></div><div class="bar-track"><div class="bar-fill" style="width:${enabled/32*100}%"></div></div></div>
-  <div class="bar-row"><div class="bar-head"><span>Utenze programmate</span><b>${scheduled}/32</b></div><div class="bar-track"><div class="bar-fill" style="width:${scheduled/32*100}%"></div></div></div>
-  <div class="tip">Questa anteprima mostra il possibile aspetto del sistema definitivo. Stati e valori sono simulati: non rappresentano le uscite fisiche del PLC.</div>
-  <div style="margin-top:18px"><button class="btn primary" id="openSchedule">Esplora programmazione</button></div></section></div>`;
+  const now=new Date(),enabled=data.filter(u=>u.enabled),on=enabled.filter(active),disabled=data.filter(u=>!u.enabled),up=upcoming(12),scheduled=data.filter(u=>slots(u)>0).length;
+  const activeRows=on.map(u=>{
+   const d=now.getDay(),m=now.getHours()*60+now.getMinutes();
+   const slot=u.config[d].find(s=>s.start&&s.end&&minutes(s.start)<=m&&m<minutes(s.end));
+   return `<tr><td><strong>${esc(u.name)}</strong><div class="muted">Utenza ${n2(u.id)}</div></td><td><span class="status on">Attiva</span></td><td>${slot?esc(slot.start)+' – '+esc(slot.end):'—'}</td><td><button class="btn small edit-one" data-id="${u.id}">Programma</button></td></tr>`;
+  }).join('');
+  return top('Situazione attuale','Stabilimento A · Situazione calcolata secondo l’orario locale del dispositivo.')+
+  `<div class="priority-strip"><span class="priority-dot"></span><div><strong>${on.length} utenze attive in questo momento</strong><span>Calcolo dimostrativo in base alle fasce orarie e all’abilitazione. Non è un riscontro delle uscite fisiche.</span></div><span class="live-time">${esc(now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}))}</span></div>
+  <section class="panel primary-panel"><div class="section-head"><div><h2>Utenze attualmente azionate</h2><span class="muted">In programma adesso · ${on.length} utenze</span></div><button class="btn small" id="refreshDashboard">Aggiorna</button></div>
+  ${on.length?`<div class="table-wrap"><table><thead><tr><th>UTENZA</th><th>STATO SIMULATO</th><th>FASCIA ATTIVA</th><th></th></tr></thead><tbody>${activeRows}</tbody></table></div>`:'<div class="empty">Nessuna utenza programmata come attiva in questo momento.</div>'}</section>
+  <div class="cards"><div class="card"><div class="metric-label">Attive adesso</div><div class="metric">${on.length}</div><div class="metric-foot">In base all’orario locale</div></div>
+  <div class="card"><div class="metric-label">Prossime attivazioni oggi</div><div class="metric">${upcoming(1000).length}</div><div class="metric-foot">Fasce future abilitate</div></div>
+  <div class="card"><div class="metric-label">Utenze disabilitate</div><div class="metric">${disabled.length}</div><div class="metric-foot">Non si attivano da programma</div></div>
+  <div class="card"><div class="metric-label">Utenze programmate</div><div class="metric">${scheduled}</div><div class="metric-foot">Su un totale di 32</div></div></div>
+  <div class="two-col">
+  <section class="panel"><div class="section-head"><div><h2>Prossime attivazioni</h2><span class="muted">Orari di avvio previsti per oggi, in ordine cronologico</span></div></div>
+  ${up.length?`<div class="table-wrap"><table><thead><tr><th>ORA</th><th>UTENZA</th><th>TRA</th><th></th></tr></thead><tbody>${up.map(x=>`<tr><td><strong>${timeLabel(x.start)}</strong></td><td>${esc(x.u.name)}<div class="muted">Fascia ${n2(x.slot)} · fino alle ${timeLabel(x.end)}</div></td><td>${x.minutesLeft<60?`${x.minutesLeft} min`:`${Math.floor(x.minutesLeft/60)} h ${x.minutesLeft%60} min`}</td><td><button class="btn small edit-one" data-id="${x.u.id}">Apri</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nessun’altra attivazione prevista per oggi.</div>'}</section>
+  <section class="panel"><div class="section-head"><div><h2>Utenze disabilitate</h2><span class="muted">${disabled.length} utenze escluse dalla programmazione</span></div><button class="btn small" id="allConsumers">Tutte le utenze</button></div>
+  ${disabled.length?`<div class="disabled-list">${disabled.map(u=>`<div class="disabled-row"><div><strong>${esc(u.name)}</strong><span>Utenza ${n2(u.id)}</span></div><button class="btn small edit-one" data-id="${u.id}">Apri</button></div>`).join('')}</div>`:'<div class="empty">Tutte le utenze sono abilitate.</div>'}</section></div>
+  <section class="panel"><div class="section-head"><div><h2>Ultime operazioni nella demo</h2><span class="muted">Modifiche confermate e azioni eseguite nel browser</span></div><button class="btn small" id="openActivity">Registro completo</button></div>
+  ${events.length?`<div class="activity-list">${events.slice(0,5).map(e=>`<div class="activity-item"><span class="activity-icon">◷</span><div><strong>${esc(e.action)}</strong><div class="muted">${esc(e.detail)}</div></div><time>${esc(eventTime(e.time))}</time></div>`).join('')}</div>`:'<div class="empty">Nessuna modifica ancora registrata in questa demo.</div>'}
+  </section><div class="tip">Gli stati si aggiornano automaticamente al cambio di minuto. Il registro documenta soltanto azioni compiute in questo browser; non è uno storico PLC o un audit centralizzato.</div>`;
+ }
+ function activity(){
+  return top('Registro attività','Cronologia delle modifiche e delle azioni effettuate in questa demo, su questo browser.')+
+  `<section class="panel"><div class="section-head"><div><h2>Operazioni registrate</h2><span class="muted">Ultimi ${events.length} eventi · Memorizzazione locale</span></div><button class="btn small" id="clearLog" ${events.length?'':'disabled'}>Svuota registro</button></div>
+  ${events.length?`<div class="table-wrap"><table><thead><tr><th>DATA E ORA</th><th>OPERAZIONE</th><th>DETTAGLIO</th></tr></thead><tbody>${events.map(e=>`<tr><td>${esc(eventTime(e.time))}</td><td><strong>${esc(e.action)}</strong></td><td>${esc(e.detail)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Non sono ancora state registrate operazioni.</div>'}</section>
+  <div class="tip">Registro dimostrativo: non identifica utenti, non è condiviso fra dispositivi e può essere cancellato. Nel sistema reale l’audit dovrà essere gestito dal PLC o da un servizio centralizzato.</div>`;
  }
  function schedule(){
   const u=draft||data[selected],changed=dirty();
@@ -76,25 +108,31 @@
   <div class="table-wrap"><table><thead><tr><th>ID</th><th>Descrizione</th><th>Abilitazione</th><th>Stato simulato</th><th>Fasce</th><th></th></tr></thead><tbody>${filtered.map(u=>`<tr><td>${n2(u.id)}</td><td><strong>${esc(u.name)}</strong></td><td>${u.enabled?'Abilitata':'Disabilitata'}</td><td><span class="status ${active(u)?'on':'off'}">${active(u)?'Attiva':'Non attiva'}</span></td><td>${slots(u)}</td><td><button class="btn small edit-one" data-id="${u.id}">Programma</button></td></tr>`).join('')}</tbody></table>${!filtered.length?'<div class="empty">Nessuna utenza trovata.</div>':''}</div></section>`;
  }
  function about(){
-  return top('Come funziona la demo','Una presentazione essenziale dell’esperienza prevista per gli operatori.')+
-  `<div class="feature-grid"><div class="feature"><strong>01 · Panoramica</strong><p>Una dashboard semplice per capire a colpo d'occhio quali utenze sono abilitate e quali risultano attive.</p></div>
-  <div class="feature"><strong>02 · Programmazione</strong><p>Selezione utenza, configurazione delle fasce per ogni giorno e modifica dei parametri essenziali.</p></div>
-  <div class="feature"><strong>03 · Conferma controllata</strong><p>Le modifiche vengono preparate come bozza. L'operatore può annullarle oppure confermarle esplicitamente.</p></div></div>
-  <section class="panel" style="margin-top:20px"><h2>Cosa è simulato</h2><ul class="help-list"><li>Stati delle utenze e ora: simulati sulla base dell'orario del dispositivo.</li><li>Salvataggio: locale al browser, senza comunicazioni con PLC o server.</li><li>Accesso: nessuna credenziale necessaria in questa demo.</li><li>Controlli avanzati, audit, allarmi, blocchi concorrenti e gestione utenti: esclusi per rendere chiara la proposta grafica.</li></ul>
-  <div class="tip"><strong>Versione definitiva:</strong> l'interfaccia potrà essere collegata alle Web API Siemens e alle logiche di autorizzazione e conferma del PLC. Questa demo non implementa tali collegamenti.</div>
-  <div class="actions" style="margin-top:20px"><button class="btn primary" id="tryDemo">Prova la programmazione</button><button class="btn danger" id="reset">Ripristina dati dimostrativi</button></div></section>`;
+  return top('Guida rapida','Le funzioni principali per l’operatore dello Stabilimento A.')+
+  `<div class="feature-grid"><div class="feature"><strong>01 · Situazione attuale</strong><p>La dashboard mostra prima le utenze che risultano attive secondo l’orario corrente, poi le prossime attivazioni e le utenze disabilitate.</p></div>
+  <div class="feature"><strong>02 · Programmazione</strong><p>Seleziona un’utenza, scegli il giorno e imposta inizio e fine delle fasce. Puoi copiare un giorno sui giorni lavorativi.</p></div>
+  <div class="feature"><strong>03 · Conferma</strong><p>Le modifiche restano in bozza finché non premi Verifica e conferma. Puoi annullare prima del salvataggio.</p></div></div>
+  <section class="panel" style="margin-top:20px"><h2>Domande frequenti</h2>
+  <h3>Le utenze si accendono realmente?</h3><p class="muted">No. In questa demo lo stato è calcolato dalle fasce orarie usando l’orologio del browser. Nessun PLC è collegato.</p>
+  <h3>Quando un’utenza compare tra le prossime attivazioni?</h3><p class="muted">Quando è abilitata e ha una fascia che inizierà più tardi nella giornata corrente.</p>
+  <h3>Cosa succede se confermo una modifica?</h3><p class="muted">Viene aggiornata la configurazione salvata localmente nel browser. La modifica compare nel registro attività della demo.</p>
+  <h3>Il registro mostra le attività di tutti gli operatori?</h3><p class="muted">No, solo le operazioni registrate su questo browser. Nella versione reale è previsto un audit centralizzato.</p>
+  <div class="actions" style="margin-top:22px"><button class="btn primary" id="tryDemo">Prova la programmazione</button><button class="btn danger" id="reset">Ripristina dati dimostrativi</button></div></section>`;
  }
  function render(){
-  const titles={dashboard:'Panoramica',schedule:'Programmazione',consumers:'Elenco utenze',about:'Come funziona'};
+  const titles={dashboard:'Panoramica',schedule:'Programmazione',consumers:'Elenco utenze',about:'Guida rapida',activity:'Registro attività'};
   $('#breadcrumb').textContent=titles[page];document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-  $('#view').innerHTML=({dashboard, schedule, consumers, about})[page]();
+  $('#view').innerHTML=({dashboard, schedule, consumers, about, activity})[page]();
   if(page==='schedule')bindSchedule();
   $('#selected')?.addEventListener('change',e=>changeSelected(Number(e.target.value)));
   document.querySelectorAll('.edit-one').forEach(b=>b.addEventListener('click',()=>{selected=Number(b.dataset.id);draft=null;page='schedule';render()}));
   $('#openSchedule')?.addEventListener('click',()=>navigate('schedule'));
+  $('#openActivity')?.addEventListener('click',()=>navigate('activity'));
+  $('#refreshDashboard')?.addEventListener('click',render);
+  $('#clearLog')?.addEventListener('click',()=>{if(confirm('Cancellare il registro attività locale?')){events=[];try{localStorage.removeItem(LOGKEY)}catch{}render();toast('Registro demo svuotato')}});
   $('#allConsumers')?.addEventListener('click',()=>navigate('consumers'));
   $('#tryDemo')?.addEventListener('click',()=>navigate('schedule'));
-  $('#reset')?.addEventListener('click',()=>{if(confirm('Ripristinare tutti i dati dimostrativi?')){data=seed();save();draft=null;toast('Dati demo ripristinati');render()}});
+  $('#reset')?.addEventListener('click',()=>{if(confirm('Ripristinare tutti i dati dimostrativi?')){data=seed();save();draft=null;logEvent('Ripristino demo','Configurazioni riportate ai valori dimostrativi iniziali');toast('Dati demo ripristinati');render()}});
   $('#search')?.addEventListener('input',e=>{search=e.target.value;const pos=e.target.selectionStart;render();const el=$('#search');el.focus();el.setSelectionRange(pos,pos)});
  }
  function edit(){if(!draft)draft=clone(data[selected]);return draft}
@@ -124,12 +162,18 @@
    const dialog=$('#confirmDialog');dialog.showModal();
    const result=await new Promise(resolve=>dialog.addEventListener('close',()=>resolve(dialog.returnValue),{once:true}));
    if(result!=='confirm')return;
-   data[selected]=clone(u);draft=null;const stored=save();render();toast(stored?'Modifica salvata nella demo. Nessun PLC coinvolto.':'Modifica applicata alla sessione; salvataggio locale non disponibile.');
+   const before=data[selected],diff=[];
+   for(const k of ['name','type','enabled','level'])if(JSON.stringify(before[k])!==JSON.stringify(u[k]))diff.push(k==='name'?'descrizione':k==='enabled'?'abilitazione':k==='type'?'tipo':'livello');
+   let modifiedSlots=0;for(let d=0;d<7;d++)for(let i=0;i<10;i++)if(JSON.stringify(before.config[d][i])!==JSON.stringify(u.config[d][i]))modifiedSlots++;
+   if(modifiedSlots)diff.push(modifiedSlots+' fasce modificate');
+   data[selected]=clone(u);draft=null;const stored=save();
+   logEvent('Configurazione confermata',`Utenza ${n2(selected)} · ${u.name} · ${diff.join(', ')||'nessuna differenza'}`);
+   render();toast(stored?'Modifica salvata nella demo. Nessun PLC coinvolto.':'Modifica applicata alla sessione; salvataggio locale non disponibile.');
   });
  }
  function updateDirty(){const el=$('.pill');if(el){el.textContent=dirty()?'Modifiche da confermare':'Nessuna modifica';el.classList.toggle('changed',dirty())}$('#commit').disabled=!dirty();$('#discard').disabled=!dirty()}
  document.querySelectorAll('.nav').forEach(b=>b.addEventListener('click',()=>{navigate(b.dataset.page);$('#sidebar').classList.remove('open')}));
  $('#menuBtn').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
  function clock(){const el=$('#clock');if(el)el.textContent=today()}
- clock();setInterval(clock,30000);render();
+ clock();setInterval(clock,30000);render();setInterval(()=>{if(page==='dashboard'&&!draft)render()},30000);
 })();
