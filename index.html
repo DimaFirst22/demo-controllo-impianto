@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f4f7f7">
+<title>Controllo impianto · Demo interattiva</title><link rel="stylesheet" href="style.css"><script defer src="demo.js"></script></head>
+<body><div class="app">
+<aside class="sidebar" id="sidebar"><div class="brand"><span class="brand-icon">◫</span><div><strong>CONTROLLO IMPIANTO</strong><small>Proposta interfaccia · Demo</small></div></div>
+<div class="nav-caption">NAVIGAZIONE</div><nav><button data-page="dashboard" class="nav active"><span>▦</span> Panoramica</button><button data-page="schedule" class="nav"><span>▤</span> Programmazione</button><button data-page="consumers" class="nav"><span>☷</span> Elenco utenze</button><button data-page="about" class="nav"><span>ⓘ</span> Come funziona</button></nav>
+<div class="sidebar-bottom"><div class="demo-status"><span class="pulse"></span> Ambiente dimostrativo</div><p>Nessuna connessione al PLC.<br>I dati sono simulati.</p></div></aside>
+<div class="main"><header><div class="header-left"><button class="icon-btn mobile-menu" id="menuBtn" aria-label="Apri menu">☰</button><span class="breadcrumb">Stabilimento <span> / </span> <b id="breadcrumb">Panoramica</b></span></div><div class="header-right"><span class="clock" id="clock"></span><span class="demo-pill">● DEMO</span></div></header>
+<div class="demo-banner"><span>ⓘ</span><div><strong>Anteprima per il cliente</strong> — Questa è una simulazione interattiva. Puoi modificare fasce orarie e impostazioni senza intervenire sull'impianto.</div></div>
+<main id="view"></main><footer>Proposta interfaccia Web HMI <span>Solo dimostrazione · Nessun dato reale</span></footer></div></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<dialog id="confirmDialog"><form method="dialog"><h2>Confermare le modifiche?</h2><p>La configurazione sarà salvata soltanto in questa demo, nel browser. Nessun comando sarà inviato al PLC.</p><div class="dialog-actions"><button value="cancel" class="btn secondary">Annulla</button><button value="confirm" class="btn primary">Conferma nella demo</button></div></form></dialog>
+</body></html>
