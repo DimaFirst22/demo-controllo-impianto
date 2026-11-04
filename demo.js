@@ -122,12 +122,7 @@
   `<div class="feature-grid"><div class="feature"><strong>01 · Situazione attuale</strong><p>La dashboard mostra prima le utenze che risultano attive secondo l’orario corrente, poi le prossime attivazioni e le utenze disabilitate.</p></div>
   <div class="feature"><strong>02 · Programmazione</strong><p>Seleziona un’utenza, scegli il giorno e imposta inizio e fine delle fasce. Puoi copiare un giorno sui giorni lavorativi.</p></div>
   <div class="feature"><strong>03 · Conferma</strong><p>Le modifiche restano in bozza finché non premi Verifica e conferma. Puoi annullare prima del salvataggio.</p></div></div>
-  <section class="panel" style="margin-top:20px"><h2>Domande frequenti</h2>
-  <h3>Le utenze si accendono realmente?</h3><p class="muted">No. In questa demo lo stato è calcolato dalle fasce orarie usando l’orologio del browser. Nessun PLC è collegato.</p>
-  <h3>Quando un’utenza compare tra le prossime attivazioni?</h3><p class="muted">Quando è abilitata e ha una fascia che inizierà più tardi nella giornata corrente.</p>
-  <h3>Cosa succede se confermo una modifica?</h3><p class="muted">Viene aggiornata la configurazione salvata localmente nel browser. La modifica compare nel registro attività della demo.</p>
-  <h3>Il registro mostra le attività di tutti gli operatori?</h3><p class="muted">No, solo le operazioni registrate su questo browser. Nella versione reale è previsto un audit centralizzato.</p>
-  <div class="actions" style="margin-top:22px"><button class="btn primary" id="tryDemo">Prova la programmazione</button><button class="btn danger" id="reset">Ripristina dati dimostrativi</button></div></section>`;
+  
  }
  function render(){
   const titles={dashboard:'Panoramica',schedule:'Programmazione',consumers:'Elenco utenze',about:'Guida rapida',activity:'Registro attività'};
