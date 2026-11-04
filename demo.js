@@ -122,7 +122,7 @@
   `<div class="feature-grid"><div class="feature"><strong>01 · Situazione attuale</strong><p>La dashboard mostra prima le utenze che risultano attive secondo l’orario corrente, poi le prossime attivazioni e le utenze disabilitate.</p></div>
   <div class="feature"><strong>02 · Programmazione</strong><p>Seleziona un’utenza, scegli il giorno e imposta inizio e fine delle fasce. Puoi copiare un giorno sui giorni lavorativi.</p></div>
   <div class="feature"><strong>03 · Conferma</strong><p>Le modifiche restano in bozza finché non premi Verifica e conferma. Puoi annullare prima del salvataggio.</p></div></div>
-  
+  </section>`;
  }
  function render(){
   const titles={dashboard:'Panoramica',schedule:'Programmazione',consumers:'Elenco utenze',about:'Guida rapida',activity:'Registro attività'};
